@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+button, input, textarea, select {
+  @apply border border-slate-300 rounded-md px-3 py-2 bg-white text-slate-900;
+}
+
+input:focus, textarea:focus, select:focus, button:focus {
+  @apply outline-none ring-2 ring-sky-500;
+}
+
+.container {
+  @apply mx-auto px-4 sm:px-6 lg:px-8;
+}

@@ -1,0 +1,36 @@
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
+import { ProjectsService } from './projects.service';
+
+@Controller()
+export class ProjectsController {
+  constructor(private projectsService: ProjectsService) {}
+
+  @Get('projects')
+  async list() {
+    return { status: 'success', data: { projects: await this.projectsService.findMany() } };
+  }
+
+  @Get('projects/:id')
+  async detail(@Param('id') id: string) {
+    return { status: 'success', data: { project: await this.projectsService.findOne(id) } };
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('ADMIN')
+  @Post('admin/projects')
+  async create(@Body() body: CreateProjectDto) {
+    return { status: 'success', data: { project: await this.projectsService.create(body) } };
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('ADMIN')
+  @Patch('admin/projects/:id')
+  async update(@Param('id') id: string, @Body() body: UpdateProjectDto) {
+    return { status: 'success', data: { project: await this.projectsService.update(id, body) } };
+  }
+}

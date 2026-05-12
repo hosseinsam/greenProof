@@ -1,0 +1,22 @@
+{
+  "name": "greenproof-mvp",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "npm@10.0.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web run dev",
+    "build": "npm --prefix apps/api run build && npm --prefix apps/web run build",
+    "test": "npm --prefix apps/api run test && npm --prefix apps/web run test",
+    "lint": "npm --prefix apps/api run lint && npm --prefix apps/web run lint",
+    "typecheck": "npm --prefix apps/api run typecheck && npm --prefix apps/web run typecheck",
+    "db:migrate": "npm --prefix apps/api exec prisma migrate deploy",
+    "db:seed": "npm --prefix apps/api exec tsx prisma/seed.ts",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
+  }
+}

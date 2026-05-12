@@ -1,0 +1,254 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  COMPANY
+  ADMIN
+  PARTNER
+}
+
+enum SubmissionType {
+  TREE_PLANTED
+  SEED_PLANTED
+  MAINTENANCE
+  SURVIVAL_CHECK
+  COMMUNITY_EVENT
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VerificationLevel {
+  BASIC
+  AI_CHECKED
+  PARTNER_VERIFIED
+  THIRD_PARTY_VERIFIED
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum ImpactPackStatus {
+  DRAFT
+  AVAILABLE
+  SOLD_OUT
+  ARCHIVED
+}
+
+enum CertificateStatus {
+  ISSUED
+  TRANSFERRED
+  RETIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  role          Role     @default(USER)
+  companyName   String?
+  walletAddress String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  submissions   Submission[] @relation("submissionUser")
+  reviewedSubmissions Submission[] @relation("submissionReviewer")
+  ledger        GreenCoinLedger[]
+  purchases     Purchase[] @relation("CompanyPurchases")
+  auditLogs     AuditLog[] @relation("ActorLogs")
+  certificates  Certificate[] @relation("CompanyCertificates")
+}
+
+model Project {
+  id                String          @id @default(uuid())
+  code              String          @unique
+  name              String
+  country           String
+  city              String?
+  description       String
+  projectType       String
+  partnerName       String?
+  status            ProjectStatus   @default(DRAFT)
+  verificationLevel VerificationLevel @default(BASIC)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  submissions       Submission[]
+  impactPacks       ImpactPack[]
+  impactUnits       ImpactUnit[]
+  certificates      Certificate[]
+}
+
+model Species {
+  id             String       @id @default(uuid())
+  commonName     String
+  scientificName String?
+  region         String
+  native         Boolean
+  invasiveRisk   Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  submissions    Submission[]
+}
+
+model Submission {
+  id                String           @id @default(uuid())
+  user              User             @relation("submissionUser", fields: [userId], references: [id])
+  userId            String
+  project           Project?         @relation(fields: [projectId], references: [id])
+  projectId         String?
+  species           Species?         @relation(fields: [speciesId], references: [id])
+  speciesId         String?
+  type              SubmissionType
+  status            SubmissionStatus @default(PENDING)
+  title             String
+  description       String
+  latitude          Float?
+  longitude         Float?
+  locationPrecision String?
+  evidenceFilePath  String?
+  evidenceHash      String?
+  rejectionReason   String?
+  reviewedBy        User?            @relation("submissionReviewer", fields: [reviewedById], references: [id])
+  reviewedById      String?
+  reviewedAt        DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  ledgerEntry       GreenCoinLedger[]
+  impactUnit        ImpactUnit[]
+}
+
+model GreenCoinLedger {
+  id         String    @id @default(uuid())
+  user       User      @relation(fields: [userId], references: [id])
+  userId     String
+  submission Submission @relation(fields: [submissionId], references: [id])
+  submissionId String
+  amount     Int
+  reason     String
+  chainTxHash String?
+  createdAt  DateTime  @default(now())
+}
+
+model ImpactUnit {
+  id            String      @id @default(uuid())
+  project       Project     @relation(fields: [projectId], references: [id])
+  projectId     String
+  submission    Submission  @relation(fields: [submissionId], references: [id])
+  submissionId  String
+  quantity      Int
+  maturityLevel String
+  locked        Boolean     @default(false)
+  certificate   Certificate? @relation(fields: [certificateId], references: [id])
+  certificateId String?
+  createdAt     DateTime    @default(now())
+}
+
+model ImpactPack {
+  id                  String           @id @default(uuid())
+  project             Project          @relation(fields: [projectId], references: [id])
+  projectId           String
+  name                String
+  description         String
+  priceCents          Int
+  currency            String           @default("EUR")
+  treesPlanted        Int
+  treesAlive12m       Int?
+  seedsPlanted        Int?
+  impactUnitsRequired Int
+  status              ImpactPackStatus @default(DRAFT)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  certificates        Certificate[]
+  purchases           Purchase[]
+}
+
+model Certificate {
+  id                 String           @id @default(uuid())
+  code               String           @unique
+  impactPack         ImpactPack       @relation(fields: [impactPackId], references: [id])
+  impactPackId       String
+  project            Project          @relation(fields: [projectId], references: [id])
+  projectId          String
+  buyerCompany       User?            @relation("CompanyCertificates", fields: [buyerCompanyId], references: [id])
+  buyerCompanyId     String?
+  status             CertificateStatus @default(ISSUED)
+  verificationLevel  VerificationLevel
+  reportHash         String
+  evidenceBundleHash String
+  chainCertificateId String?
+  chainMintTxHash    String?
+  chainRetireTxHash  String?
+  issuedAt           DateTime         @default(now())
+  retiredAt          DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  purchase           Purchase?
+  reportingFile      ReportingFile?
+  impactUnits        ImpactUnit[]
+}
+
+model Purchase {
+  id            String        @id @default(uuid())
+  company       User          @relation("CompanyPurchases", fields: [companyId], references: [id])
+  companyId     String
+  impactPack    ImpactPack    @relation(fields: [impactPackId], references: [id])
+  impactPackId  String
+  certificate   Certificate?  @relation(fields: [certificateId], references: [id])
+  certificateId String?       @unique
+  amountCents   Int
+  currency      String        @default("EUR")
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model ChainEvent {
+  id         String   @id @default(uuid())
+  type       String
+  entityType String
+  entityId   String
+  txHash     String   @unique
+  payload    Json
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actor      User?    @relation("ActorLogs", fields: [actorId], references: [id])
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+}
+
+model ReportingFile {
+  id          String      @id @default(uuid())
+  certificate Certificate @relation(fields: [certificateId], references: [id])
+  certificateId String    @unique
+  filePath    String
+  fileHash    String
+  createdAt   DateTime    @default(now())
+}
