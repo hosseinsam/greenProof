@@ -1,23 +1,23 @@
 'use client';
 
-import Link from 'next/link';
-import { Navbar } from '../../../components/navbar';
+import { DashboardShell } from '../../../components/dashboard-shell';
 
 export default function AdminDashboardPage() {
   return (
-    <div>
-      <Navbar />
-      <main className="container mx-auto py-16">
-        <div className="rounded-3xl bg-white p-8 shadow-lg">
-          <h1 className="text-3xl font-semibold text-slate-900">Admin dashboard</h1>
-          <p className="mt-2 text-slate-600">Review evidence, manage projects, and issue certificates.</p>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <Link href="/app/admin/submissions" className="rounded-3xl bg-slate-50 p-6 text-slate-900 hover:bg-slate-100">Submissions</Link>
-            <Link href="/app/admin/projects" className="rounded-3xl bg-slate-50 p-6 text-slate-900 hover:bg-slate-100">Projects</Link>
-            <Link href="/app/admin/impact-packs" className="rounded-3xl bg-slate-50 p-6 text-slate-900 hover:bg-slate-100">Impact Packs</Link>
-          </div>
-        </div>
-      </main>
-    </div>
+    <DashboardShell
+      eyebrow="Admin workspace"
+      title="Review evidence quickly without losing the audit trail."
+      description="Use the admin workspace to manage the proof pipeline, shape projects and species, and turn approved activity into credible funding outputs."
+      stats={[
+        { label: 'Queue status', value: 'Pending' },
+        { label: 'Evidence type', value: 'Geo-tagged' },
+        { label: 'Audit trail', value: 'On' }
+      ]}
+      actions={[
+        { href: '/app/admin/submissions', label: 'Submissions', description: 'Review incoming evidence, inspect coordinates, and approve or reject with context.' },
+        { href: '/app/admin/projects', label: 'Projects', description: 'Maintain the project catalog that community users can attach their field activity to.' },
+        { href: '/app/admin/impact-packs', label: 'Impact Packs', description: 'Package approved impact units into offerings that companies can responsibly fund.' }
+      ]}
+    />
   );
 }

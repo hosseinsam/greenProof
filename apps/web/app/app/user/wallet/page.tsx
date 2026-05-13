@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Navbar } from '../../../components/navbar';
-import { apiFetch } from '../../../lib/api';
+import { Navbar } from '../../../../components/navbar';
+import { apiFetch } from '../../../../lib/api';
 
 export default function UserWalletPage() {
   const [wallet, setWallet] = useState<any>(null);
 
   useEffect(() => {
-    apiFetch('/wallet/me').then((data) => setWallet(data?.data ?? null));
+    apiFetch('/wallet/me').then((data: any) => setWallet(data?.data ?? null));
   }, []);
 
   return (

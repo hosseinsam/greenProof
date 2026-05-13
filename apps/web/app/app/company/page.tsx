@@ -1,23 +1,23 @@
 'use client';
 
-import Link from 'next/link';
-import { Navbar } from '../../../components/navbar';
+import { DashboardShell } from '../../../components/dashboard-shell';
 
 export default function CompanyDashboardPage() {
   return (
-    <div>
-      <Navbar />
-      <main className="container mx-auto py-16">
-        <div className="rounded-3xl bg-white p-8 shadow-lg">
-          <h1 className="text-3xl font-semibold text-slate-900">Company dashboard</h1>
-          <p className="mt-2 text-slate-600">Browse impact packs, view purchases, and use certificates for reporting.</p>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <Link href="/app/company/marketplace" className="rounded-3xl bg-slate-50 p-6 text-slate-900 hover:bg-slate-100">Marketplace</Link>
-            <Link href="/app/company/purchases" className="rounded-3xl bg-slate-50 p-6 text-slate-900 hover:bg-slate-100">Purchases</Link>
-            <Link href="/app/company/certificates" className="rounded-3xl bg-slate-50 p-6 text-slate-900 hover:bg-slate-100">Certificates</Link>
-          </div>
-        </div>
-      </main>
-    </div>
+    <DashboardShell
+      eyebrow="Company workspace"
+      title="Fund local projects and keep the evidence trail ready for reporting."
+      description="Browse the marketplace, manage purchases, and access certificates that are explicit about what was funded, verified, and retired."
+      stats={[
+        { label: 'Claim safety', value: 'High' },
+        { label: 'Certificates', value: 'Auditable' },
+        { label: 'Registry trail', value: 'Public' }
+      ]}
+      actions={[
+        { href: '/app/company/marketplace', label: 'Marketplace', description: 'Compare available impact packs and find the best fit for your local nature goals.' },
+        { href: '/app/company/purchases', label: 'Purchases', description: 'Track orders, statuses, and the progression from funding to issued proof.' },
+        { href: '/app/company/certificates', label: 'Certificates', description: 'Open retired certificates with their supporting hashes and reporting context.' }
+      ]}
+    />
   );
 }

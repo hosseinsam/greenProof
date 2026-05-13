@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Navbar } from '../../../components/navbar';
-import { apiFetch } from '../../../lib/api';
+import { Navbar } from '../../../../components/navbar';
+import { apiFetch } from '../../../../lib/api';
 
 export default function CompanyMarketplacePage() {
   const [packs, setPacks] = useState<any[]>([]);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch('/impact-packs').then((data) => setPacks(data?.data?.packs ?? []));
+    apiFetch('/impact-packs').then((data: any) => setPacks(data?.data?.packs ?? []));
   }, []);
 
   async function buyPack(id: string) {

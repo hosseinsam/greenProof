@@ -14,6 +14,8 @@ const GREEN_COIN_REWARDS: Record<SubmissionType, number> = {
   COMMUNITY_EVENT: 20
 };
 
+const IMPACT_UNIT_ELIGIBLE_TYPES = [SubmissionType.TREE_PLANTED, SubmissionType.SURVIVAL_CHECK] as const;
+
 @Injectable()
 export class SubmissionsService {
   constructor(
@@ -103,7 +105,7 @@ export class SubmissionsService {
       data: { chainTxHash: chainResult.txHash }
     });
 
-    if ([SubmissionType.TREE_PLANTED, SubmissionType.SURVIVAL_CHECK].includes(approved.type)) {
+    if (IMPACT_UNIT_ELIGIBLE_TYPES.some((type) => type === approved.type)) {
       await this.prisma.impactUnit.create({
         data: {
           projectId: approved.projectId ?? '',

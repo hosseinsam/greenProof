@@ -1,4 +1,4 @@
-// File: C:\Users\Vic\Desktop\greenProof\apps\web\app\login\page.tsx
+// File: C:\Users\Vic\Desktop\greenProof\greenProof\apps\web\app\login\page.tsx
 import * as entry from '../../../../app/login/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

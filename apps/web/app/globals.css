@@ -1,23 +1,132 @@
+@import 'leaflet/dist/leaflet.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
+  --background: #f4f6ef;
+  --foreground: #18352a;
+  --card: rgba(255, 255, 255, 0.78);
+  --card-strong: #ffffff;
+  --muted: #6b7d72;
+  --line: rgba(24, 53, 42, 0.12);
+  --primary: #285943;
+  --primary-strong: #173829;
+  --accent: #d8e57b;
+  --accent-strong: #c8db4a;
+  --hero-gradient: radial-gradient(circle at top left, rgba(216, 229, 123, 0.6), transparent 35%),
+    linear-gradient(135deg, #eef4dc 0%, #d6e8d4 48%, #eef6f0 100%);
+  --soft-shadow: 0 30px 80px -35px rgba(24, 53, 42, 0.25);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply antialiased;
+  background:
+    radial-gradient(circle at top, rgba(216, 229, 123, 0.14), transparent 28%),
+    linear-gradient(180deg, #f7f8f2 0%, #edf3e7 100%);
+  color: var(--foreground);
 }
 
-button, input, textarea, select {
-  @apply border border-slate-300 rounded-md px-3 py-2 bg-white text-slate-900;
+a {
+  color: inherit;
 }
 
-input:focus, textarea:focus, select:focus, button:focus {
-  @apply outline-none ring-2 ring-sky-500;
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
 .container {
-  @apply mx-auto px-4 sm:px-6 lg:px-8;
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.03em;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: var(--soft-shadow);
+    backdrop-filter: blur(16px);
+  }
+
+  .panel-card {
+    @apply rounded-[28px] border p-6 md:p-8;
+    background: var(--card-strong);
+    border-color: var(--line);
+    box-shadow: 0 18px 60px -42px rgba(24, 53, 42, 0.42);
+  }
+
+  .field-label {
+    @apply mb-2 block text-sm font-semibold;
+    color: var(--foreground);
+  }
+
+  .field-input {
+    @apply w-full rounded-2xl border px-4 py-3 transition duration-200;
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(24, 53, 42, 0.14);
+    color: var(--foreground);
+  }
+
+  .field-input::placeholder {
+    color: #7c8f83;
+  }
+
+  .field-input:focus {
+    @apply outline-none ring-2;
+    border-color: rgba(40, 89, 67, 0.35);
+    --tw-ring-color: rgba(40, 89, 67, 0.18);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition duration-200;
+    background: var(--primary);
+    color: #f6f8f1;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-strong);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-full border px-5 py-3 text-sm font-semibold transition duration-200;
+    border-color: rgba(24, 53, 42, 0.14);
+    background: rgba(255, 255, 255, 0.65);
+    color: var(--foreground);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em];
+    background: rgba(216, 229, 123, 0.42);
+    color: var(--primary-strong);
+  }
+
+  .leaflet-container {
+    @apply h-full w-full rounded-[24px];
+    font: inherit;
+  }
 }

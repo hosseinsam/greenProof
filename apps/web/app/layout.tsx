@@ -1,5 +1,16 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { Fraunces, Manrope } from 'next/font/google';
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-manrope'
+});
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-fraunces'
+});
 
 export const metadata: Metadata = {
   title: 'GreenProof',
@@ -9,8 +20,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <div className="min-h-screen bg-slate-50 text-slate-900">
+      <body className={`${manrope.variable} ${fraunces.variable} font-sans`}>
+        <div className="min-h-screen text-slate-900">
           {children}
         </div>
       </body>

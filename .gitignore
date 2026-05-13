@@ -1,9 +1,41 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+apps/*/node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Next.js / frontend caches
+.next/
+apps/*/.next/
+out/
+
+# Runtime / local app data
+storage/
+uploads/
+tmp/
+temp/
+
+# Environment files
 .env
 .env.*
-storage
-apps/api/node_modules
-apps/web/node_modules
-pnpm-lock.yaml
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor files
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Package manager files you do not want committed
+pnpm-lock.yaml

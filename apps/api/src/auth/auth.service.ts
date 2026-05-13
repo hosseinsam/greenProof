@@ -4,6 +4,8 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 
+type PublicRole = 'USER' | 'COMPANY';
+
 @Injectable()
 export class AuthService {
   constructor(private prisma: PrismaService, private jwtService: JwtService) {}
@@ -17,7 +19,7 @@ export class AuthService {
     return safeUser;
   }
 
-  async login(user: { id: string; email: string; role: Role; name: string; companyName?: string }) {
+  async login(user: { id: string; email: string; role: Role; name: string; companyName?: string | null }) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     return {
       accessToken: this.jwtService.sign(payload),
@@ -25,13 +27,10 @@ export class AuthService {
     };
   }
 
-  async register(input: { email: string; password: string; name: string; role: Role; companyName?: string }) {
+  async register(input: { email: string; password: string; name: string; role: PublicRole; companyName?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (existing) {
       throw new UnauthorizedException('Email already registered');
-    }
-    if (![Role.USER, Role.COMPANY].includes(input.role)) {
-      throw new UnauthorizedException('Public registration supports USER or COMPANY roles only');
     }
     const passwordHash = await bcrypt.hash(input.password, 10);
     const user = await this.prisma.user.create({

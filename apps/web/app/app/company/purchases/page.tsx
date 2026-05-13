@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Navbar } from '../../../components/navbar';
-import { apiFetch } from '../../../lib/api';
+import { Navbar } from '../../../../components/navbar';
+import { apiFetch } from '../../../../lib/api';
 
 export default function CompanyPurchasesPage() {
   const [purchases, setPurchases] = useState<any[]>([]);
 
   useEffect(() => {
-    apiFetch('/company/purchases').then((data) => setPurchases(data?.data?.purchases ?? []));
+    apiFetch('/company/purchases').then((data: any) => setPurchases(data?.data?.purchases ?? []));
   }, []);
 
   return (

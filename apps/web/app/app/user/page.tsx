@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Navbar } from '../../../components/navbar';
+import { DashboardShell } from '../../../components/dashboard-shell';
 import { apiFetch } from '../../../lib/api';
 
 export default function UserDashboardPage() {
@@ -13,26 +12,20 @@ export default function UserDashboardPage() {
   }, []);
 
   return (
-    <div>
-      <Navbar />
-      <main className="container mx-auto py-16">
-        <div className="rounded-3xl bg-white p-8 shadow-lg">
-          <h1 className="text-3xl font-semibold text-slate-900">User dashboard</h1>
-          <p className="mt-2 text-slate-600">View your Green Coin balance and submissions.</p>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <div className="rounded-3xl bg-slate-50 p-6">
-              <h2 className="text-sm uppercase tracking-[0.3em] text-slate-500">Balance</h2>
-              <p className="mt-4 text-3xl font-semibold text-slate-900">{wallet ? wallet.balance : '…'}</p>
-            </div>
-            <div className="rounded-3xl bg-slate-50 p-6">
-              <Link href="/app/user/submit" className="text-slate-900 hover:text-sky-600">Submit evidence</Link>
-            </div>
-            <div className="rounded-3xl bg-slate-50 p-6">
-              <Link href="/app/user/submissions" className="text-slate-900 hover:text-sky-600">My submissions</Link>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+    <DashboardShell
+      eyebrow="Community workspace"
+      title="Track field work, rewards, and what needs review next."
+      description="Your dashboard is organized around evidence capture. From here you can submit new planting records, follow review outcomes, and keep an eye on your Green Coin balance."
+      stats={[
+        { label: 'Green Coins', value: wallet ? String(wallet.balance) : '...' },
+        { label: 'Review flow', value: 'Live' },
+        { label: 'Location proof', value: 'Map-enabled' }
+      ]}
+      actions={[
+        { href: '/app/user/submit', label: 'Submit evidence', description: 'Create a richer planting or maintenance record with image proof and an exact map pin.' },
+        { href: '/app/user/submissions', label: 'My submissions', description: 'Review pending, approved, and rejected submissions in one place.' },
+        { href: '/app/user/wallet', label: 'Wallet activity', description: 'See your ledger, rewards, and any chain transaction references.' }
+      ]}
+    />
   );
 }

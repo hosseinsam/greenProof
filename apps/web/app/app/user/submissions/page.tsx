@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Navbar } from '../../../components/navbar';
-import { apiFetch } from '../../../lib/api';
+import { Navbar } from '../../../../components/navbar';
+import { apiFetch } from '../../../../lib/api';
 
 export default function UserSubmissionsPage() {
   const [submissions, setSubmissions] = useState<any[]>([]);
 
   useEffect(() => {
-    apiFetch('/submissions/my').then((data) => setSubmissions(data?.data?.submissions ?? []));
+    apiFetch('/submissions/my').then((data: any) => setSubmissions(data?.data?.submissions ?? []));
   }, []);
 
   return (

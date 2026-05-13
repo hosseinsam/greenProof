@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Navbar } from '../../../components/navbar';
-import { apiFetch } from '../../../lib/api';
+import { Navbar } from '../../../../components/navbar';
+import { apiFetch } from '../../../../lib/api';
 
 export default function CompanyCertificatesPage() {
   const [certificates, setCertificates] = useState<any[]>([]);
 
   useEffect(() => {
-    apiFetch('/company/certificates').then((data) => setCertificates(data?.data?.certificates ?? []));
+    apiFetch('/company/certificates').then((data: any) => setCertificates(data?.data?.certificates ?? []));
   }, []);
 
   return (
