@@ -36,7 +36,16 @@ export class SubmissionsController {
   })
   @UseGuards(AuthGuard('jwt'))
   @Post('submissions')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_request, file, callback) => {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
+        callback(new BadRequestException('Evidence file must be a jpg, png, or webp image'), false);
+        return;
+      }
+      callback(null, true);
+    }
+  }))
   async create(
     @Req() request: RequestWithUser,
     @Body() body: CreateSubmissionDto,
@@ -63,7 +72,7 @@ export class SubmissionsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('ADMIN')
   @Get('admin/submissions')
-  async pending(@Query('status') status?: string) {
+  async pending(@Query('status') _status?: string) {
     const submissions = await this.submissionsService.findPending();
     return { status: 'success', data: { submissions } };
   }

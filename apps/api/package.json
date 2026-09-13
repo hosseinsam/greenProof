@@ -9,7 +9,7 @@
     "dev": "ts-node --project tsconfig.json src/main.ts",
     "lint": "eslint . --ext .ts",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --config vitest.config.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

@@ -15,7 +15,7 @@ export class AuthService {
     if (!user) return null;
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return null;
-    const { passwordHash, ...safeUser } = user;
+    const { passwordHash: _passwordHash, ...safeUser } = user;
     return safeUser;
   }
 
@@ -42,7 +42,7 @@ export class AuthService {
         companyName: input.companyName
       }
     });
-    const { passwordHash: _, ...safeUser } = user;
+    const { passwordHash: _passwordHash, ...safeUser } = user;
     return safeUser;
   }
 }

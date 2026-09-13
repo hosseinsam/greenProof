@@ -1,4 +1,4 @@
-import { PrismaClient, Role, ProjectStatus, VerificationLevel, ImpactPackStatus, SubmissionStatus, SubmissionType, PaymentStatus, CertificateStatus } from '@prisma/client';
+import { PrismaClient, Role, ProjectStatus, VerificationLevel, ImpactPackStatus, SubmissionStatus, SubmissionType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -20,7 +20,7 @@ async function main() {
     create: { email: 'user@greenproof.local', passwordHash: userPassword, name: 'Community User', role: Role.USER }
   });
 
-  const company = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'company@greenproof.local' },
     update: { passwordHash: companyPassword, name: 'Nordic Café AB', role: Role.COMPANY, companyName: 'Nordic Café AB' },
     create: { email: 'company@greenproof.local', passwordHash: companyPassword, name: 'Nordic Café AB', role: Role.COMPANY, companyName: 'Nordic Café AB' }
@@ -91,7 +91,7 @@ async function main() {
     });
   }
 
-  const pack1 = await prisma.impactPack.upsert({
+  await prisma.impactPack.upsert({
     where: { name: 'Starter Tree Pack' },
     update: {
       projectId: project1.id,
@@ -114,7 +114,7 @@ async function main() {
     }
   });
 
-  const pack2 = await prisma.impactPack.upsert({
+  await prisma.impactPack.upsert({
     where: { name: 'Local ESG Pack' },
     update: {
       projectId: project1.id,
@@ -137,7 +137,7 @@ async function main() {
     }
   });
 
-  const pack3 = await prisma.impactPack.upsert({
+  await prisma.impactPack.upsert({
     where: { name: 'Community Seed Pack' },
     update: {
       projectId: project2.id,
@@ -160,7 +160,7 @@ async function main() {
     }
   });
 
-  const pending1 = await prisma.submission.upsert({
+  await prisma.submission.upsert({
     where: { id: 'pending-submission-1' },
     update: {},
     create: {

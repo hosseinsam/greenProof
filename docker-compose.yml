@@ -20,7 +20,10 @@ services:
       DATABASE_URL: postgresql://greenproof:greenproof@postgres:5432/greenproof
       JWT_SECRET: local-dev-secret
       API_PORT: '4000'
+      NEXT_PUBLIC_WEB_ORIGIN: http://localhost:3000
       STORAGE_DIR: /app/storage
+      CHAIN_MODE: mock
+      PAYMENT_MODE: simulated
     ports:
       - '4000:4000'
     depends_on:

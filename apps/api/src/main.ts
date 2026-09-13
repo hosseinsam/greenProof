@@ -8,6 +8,16 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
+  const config = app.get(ConfigService);
+  const webOrigin = config.get<string>('NEXT_PUBLIC_WEB_ORIGIN') || 'http://localhost:3000';
+
+  app.enableCors({
+    origin: webOrigin.split(',').map(origin => origin.trim()).filter(Boolean),
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -32,7 +42,6 @@ async function bootstrap() {
     }
   });
 
-  const config = app.get(ConfigService);
   const port = config.get<number>('API_PORT') || 4000;
   await app.listen(port);
   console.log(`GreenProof API running on http://0.0.0.0:${port}`);

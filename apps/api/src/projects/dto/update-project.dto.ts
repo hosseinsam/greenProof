@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { ProjectStatus, VerificationLevel } from '@prisma/client';
 
 export class UpdateProjectDto {

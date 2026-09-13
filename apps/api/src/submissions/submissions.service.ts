@@ -1,10 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { ChainRegistryAdapter } from '../common/interfaces/chain-registry.adapter';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { SubmissionType, SubmissionStatus } from '@prisma/client';
+import { safeEvidenceFilename, writePrivateFile } from '../common/storage/safe-storage';
 
 const GREEN_COIN_REWARDS: Record<SubmissionType, number> = {
   TREE_PLANTED: 5,
@@ -21,7 +23,8 @@ export class SubmissionsService {
   constructor(
     private prisma: PrismaService,
     private chainRegistry: ChainRegistryAdapter,
-    private auditService: AuditService
+    private auditService: AuditService,
+    private config?: ConfigService
   ) {}
 
   async create(userId: string, data: CreateSubmissionDto, fileBuffer: Buffer, filename: string) {
@@ -30,10 +33,8 @@ export class SubmissionsService {
     if (existing) {
       throw new BadRequestException('Duplicate evidence upload detected');
     }
-    const storagePath = `storage/submissions/${Date.now()}-${filename}`;
-    await this.prisma.$executeRawUnsafe(`SELECT 1`);
-    await import('fs/promises').then(fs => fs.mkdir('storage/submissions', { recursive: true }));
-    await import('fs/promises').then(fs => fs.writeFile(storagePath, fileBuffer));
+    const storageRoot = this.config?.get<string>('STORAGE_DIR') ?? './storage';
+    const storagePath = await writePrivateFile(storageRoot, 'submissions', safeEvidenceFilename(filename), fileBuffer);
 
     return this.prisma.submission.create({
       data: {
@@ -68,31 +69,54 @@ export class SubmissionsService {
   }
 
   async approve(submissionId: string, reviewerId: string) {
-    const submission = await this.prisma.submission.findUnique({ where: { id: submissionId } });
-    if (!submission) {
-      throw new NotFoundException('Submission not found');
-    }
-    if (submission.status !== SubmissionStatus.PENDING) {
-      throw new BadRequestException('Submission is not pending');
-    }
-
-    const amount = GREEN_COIN_REWARDS[submission.type];
-    const approved = await this.prisma.submission.update({
-      where: { id: submissionId },
-      data: {
-        status: SubmissionStatus.APPROVED,
-        reviewedById: reviewerId,
-        reviewedAt: new Date()
+    const { approved, ledger, amount } = await this.prisma.$transaction(async tx => {
+      const submission = await tx.submission.findUnique({ where: { id: submissionId } });
+      if (!submission) {
+        throw new NotFoundException('Submission not found');
       }
-    });
-
-    const ledger = await this.prisma.greenCoinLedger.create({
-      data: {
-        userId: approved.userId,
-        submissionId: approved.id,
-        amount,
-        reason: `Approved ${approved.type.toLowerCase().replace('_', ' ')}`
+      if (submission.status !== SubmissionStatus.PENDING) {
+        throw new BadRequestException('Submission is not pending');
       }
+
+      const updated = await tx.submission.updateMany({
+        where: { id: submissionId, status: SubmissionStatus.PENDING },
+        data: {
+          status: SubmissionStatus.APPROVED,
+          reviewedById: reviewerId,
+          reviewedAt: new Date()
+        }
+      });
+      if (updated.count !== 1) {
+        throw new BadRequestException('Submission is not pending');
+      }
+
+      const approvedSubmission = await tx.submission.findUniqueOrThrow({ where: { id: submissionId } });
+      const rewardAmount = GREEN_COIN_REWARDS[approvedSubmission.type];
+      const ledgerEntry = await tx.greenCoinLedger.create({
+        data: {
+          userId: approvedSubmission.userId,
+          submissionId: approvedSubmission.id,
+          amount: rewardAmount,
+          reason: `Approved ${approvedSubmission.type.toLowerCase().replace('_', ' ')}`
+        }
+      });
+
+      if (IMPACT_UNIT_ELIGIBLE_TYPES.some((type) => type === approvedSubmission.type)) {
+        if (!approvedSubmission.projectId) {
+          throw new BadRequestException('Approved impact submissions must belong to a project');
+        }
+        await tx.impactUnit.create({
+          data: {
+            projectId: approvedSubmission.projectId,
+            submissionId: approvedSubmission.id,
+            quantity: 1,
+            maturityLevel: 'INITIAL',
+            locked: false
+          }
+        });
+      }
+
+      return { approved: approvedSubmission, ledger: ledgerEntry, amount: rewardAmount };
     });
 
     const chainResult = await this.chainRegistry.mintGreenCoins({
@@ -104,18 +128,6 @@ export class SubmissionsService {
       where: { id: ledger.id },
       data: { chainTxHash: chainResult.txHash }
     });
-
-    if (IMPACT_UNIT_ELIGIBLE_TYPES.some((type) => type === approved.type)) {
-      await this.prisma.impactUnit.create({
-        data: {
-          projectId: approved.projectId ?? '',
-          submissionId: approved.id,
-          quantity: 1,
-          maturityLevel: 'INITIAL',
-          locked: false
-        }
-      });
-    }
 
     await this.auditService.record(reviewerId, 'approve_submission', 'Submission', approved.id, {
       status: approved.status,

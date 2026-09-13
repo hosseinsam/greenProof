@@ -13,27 +13,27 @@ import { ChainRegistryAdapter, ChainCertificateStatus, ChainTxResult } from '../
 
 @Injectable()
 export class CosmjsCosmosRegistryAdapter extends ChainRegistryAdapter {
-  async mintGreenCoins(input: { userId: string; amount: number; reason: string; }): Promise<ChainTxResult> {
+  async mintGreenCoins(_input: { userId: string; amount: number; reason: string; }): Promise<ChainTxResult> {
     // TODO: use SigningStargateClient to broadcast a message for minting green coins.
     throw new Error('Cosmos adapter not implemented');
   }
 
-  async mintImpactCertificate(input: { certificateId: string; buyerCompanyId: string; reportHash: string; evidenceHash: string; }): Promise<ChainTxResult> {
+  async mintImpactCertificate(_input: { certificateId: string; buyerCompanyId: string; reportHash: string; evidenceHash: string; }): Promise<ChainTxResult> {
     // TODO: sign and broadcast certificate mint transaction, store chain ID in DB.
     throw new Error('Cosmos adapter not implemented');
   }
 
-  async transferCertificate(input: { certificateId: string; toWallet: string; }): Promise<ChainTxResult> {
+  async transferCertificate(_input: { certificateId: string; toWallet: string; }): Promise<ChainTxResult> {
     // TODO: call transfer function on chain smart contract or registry module.
     throw new Error('Cosmos adapter not implemented');
   }
 
-  async retireCertificate(input: { certificateId: string; }): Promise<ChainTxResult> {
+  async retireCertificate(_input: { certificateId: string; }): Promise<ChainTxResult> {
     // TODO: execute retirement transaction and confirm chain state.
     throw new Error('Cosmos adapter not implemented');
   }
 
-  async getCertificateStatus(certificateId: string): Promise<ChainCertificateStatus | null> {
+  async getCertificateStatus(_certificateId: string): Promise<ChainCertificateStatus | null> {
     // TODO: query chain transaction state or contract storage.
     throw new Error('Cosmos adapter not implemented');
   }

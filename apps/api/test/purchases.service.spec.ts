@@ -3,6 +3,7 @@ import { PurchasesService } from '../src/purchases/purchases.service';
 import { ImpactPackStatus, CertificateStatus, VerificationLevel } from '@prisma/client';
 
 const prismaMock = {
+  $transaction: vi.fn((callback) => callback(prismaMock)),
   purchase: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   certificate: { create: vi.fn(), update: vi.fn() },
   project: { findUnique: vi.fn() },
@@ -37,6 +38,7 @@ describe('PurchasesService', () => {
     prismaMock.purchase.create.mockResolvedValueOnce({ id: 'purchase1' });
     prismaMock.certificate.create.mockResolvedValueOnce({ id: 'cert1', code: 'GRP-1234', buyerCompanyId: 'c1', status: CertificateStatus.ISSUED, verificationLevel: VerificationLevel.BASIC, reportHash: 'hash', evidenceBundleHash: 'evidence', chainMintTxHash: null, chainRetireTxHash: null, issuedAt: new Date(), retiredAt: null });
     prismaMock.certificate.update.mockResolvedValueOnce({ id: 'cert1', status: CertificateStatus.RETIRED, code: 'GRP-1234', buyerCompanyId: 'c1', verificationLevel: VerificationLevel.BASIC, reportHash: 'hash', evidenceBundleHash: 'evidence', chainMintTxHash: 'tx-mint', chainRetireTxHash: 'tx-retire', issuedAt: new Date(), retiredAt: new Date() });
+    prismaMock.impactUnit.updateMany.mockResolvedValueOnce({ count: 1 });
     prismaMock.purchase.update.mockResolvedValueOnce({ id: 'purchase1' });
     prismaMock.reportingFile.create.mockResolvedValueOnce({ id: 'file1' });
 
