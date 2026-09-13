@@ -128,7 +128,14 @@ model Submission {
   locationPrecision String?
   evidenceFilePath  String?
   evidenceHash      String?
+  evidenceMimeType  String?
+  evidenceFileSize  Int?
+  evidenceOriginalName String?
+  suspiciousFlag    Boolean          @default(false)
   rejectionReason   String?
+  reviewerNote      String?
+  verificationChecklist Json?
+  verificationLevel VerificationLevel @default(BASIC)
   reviewedBy        User?            @relation("submissionReviewer", fields: [reviewedById], references: [id])
   reviewedById      String?
   reviewedAt        DateTime?
@@ -199,6 +206,8 @@ model Certificate {
   chainCertificateId String?
   chainMintTxHash    String?
   chainRetireTxHash  String?
+  chainTransferTxHash String?
+  proofTimeline      Json?
   issuedAt           DateTime         @default(now())
   retiredAt          DateTime?
   createdAt          DateTime         @default(now())
@@ -219,6 +228,8 @@ model Purchase {
   amountCents   Int
   currency      String        @default("EUR")
   status        PaymentStatus @default(PENDING)
+  paymentReference String?
+  paidAt        DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }

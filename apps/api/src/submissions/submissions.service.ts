@@ -1,12 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
+import { resolve } from 'path';
 import { ChainRegistryAdapter } from '../common/interfaces/chain-registry.adapter';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
-import { SubmissionType, SubmissionStatus } from '@prisma/client';
+import { SubmissionType, SubmissionStatus, VerificationLevel } from '@prisma/client';
 import { safeEvidenceFilename, writePrivateFile } from '../common/storage/safe-storage';
+import { ApproveSubmissionDto, RejectSubmissionDto, ReviewChecklistDto } from './dto/review-submission.dto';
 
 const GREEN_COIN_REWARDS: Record<SubmissionType, number> = {
   TREE_PLANTED: 5,
@@ -27,14 +29,15 @@ export class SubmissionsService {
     private config?: ConfigService
   ) {}
 
-  async create(userId: string, data: CreateSubmissionDto, fileBuffer: Buffer, filename: string) {
+  async create(userId: string, data: CreateSubmissionDto, file: Express.Multer.File) {
+    const fileBuffer = file.buffer;
     const evidenceHash = createHash('sha256').update(fileBuffer).digest('hex');
     const existing = await this.prisma.submission.findFirst({ where: { evidenceHash } });
     if (existing) {
       throw new BadRequestException('Duplicate evidence upload detected');
     }
     const storageRoot = this.config?.get<string>('STORAGE_DIR') ?? './storage';
-    const storagePath = await writePrivateFile(storageRoot, 'submissions', safeEvidenceFilename(filename), fileBuffer);
+    const storagePath = await writePrivateFile(storageRoot, 'submissions', safeEvidenceFilename(file.originalname), fileBuffer);
 
     return this.prisma.submission.create({
       data: {
@@ -49,9 +52,34 @@ export class SubmissionsService {
         locationPrecision: data.locationPrecision,
         evidenceFilePath: storagePath,
         evidenceHash,
+        evidenceMimeType: file.mimetype,
+        evidenceFileSize: file.size,
+        evidenceOriginalName: file.originalname,
+        suspiciousFlag: this.isSuspiciousSubmission(data, file),
         status: SubmissionStatus.PENDING
       }
     });
+  }
+
+  async getEvidence(submissionId: string, user: { sub: string; role: string }) {
+    const submission = await this.prisma.submission.findUnique({ where: { id: submissionId } });
+    if (!submission?.evidenceFilePath) {
+      throw new NotFoundException('Evidence file not found');
+    }
+    if (submission.userId !== user.sub && user.role !== 'ADMIN') {
+      throw new ForbiddenException('You cannot access this evidence file');
+    }
+
+    const storageRoot = resolve(this.config?.get<string>('STORAGE_DIR') ?? './storage');
+    const absolutePath = resolve(submission.evidenceFilePath);
+    if (!absolutePath.startsWith(storageRoot)) {
+      throw new ForbiddenException('Evidence file is outside the configured storage root');
+    }
+
+    return {
+      absolutePath,
+      mimeType: submission.evidenceMimeType ?? 'application/octet-stream'
+    };
   }
 
   async findMySubmissions(userId: string) {
@@ -68,7 +96,7 @@ export class SubmissionsService {
     });
   }
 
-  async approve(submissionId: string, reviewerId: string) {
+  async approve(submissionId: string, reviewerId: string, review: ApproveSubmissionDto = {}) {
     const { approved, ledger, amount } = await this.prisma.$transaction(async tx => {
       const submission = await tx.submission.findUnique({ where: { id: submissionId } });
       if (!submission) {
@@ -78,10 +106,18 @@ export class SubmissionsService {
         throw new BadRequestException('Submission is not pending');
       }
 
+      const checklist = this.buildChecklist(submission, review.checklist);
+      if (!Object.values(checklist).every(Boolean)) {
+        throw new BadRequestException('Verification checklist must pass before approval');
+      }
+
       const updated = await tx.submission.updateMany({
         where: { id: submissionId, status: SubmissionStatus.PENDING },
         data: {
           status: SubmissionStatus.APPROVED,
+          reviewerNote: review.reviewerNote,
+          verificationChecklist: checklist,
+          verificationLevel: review.verificationLevel ?? VerificationLevel.BASIC,
           reviewedById: reviewerId,
           reviewedAt: new Date()
         }
@@ -129,15 +165,17 @@ export class SubmissionsService {
       data: { chainTxHash: chainResult.txHash }
     });
 
-    await this.auditService.record(reviewerId, 'approve_submission', 'Submission', approved.id, {
+      await this.auditService.record(reviewerId, 'approve_submission', 'Submission', approved.id, {
       status: approved.status,
-      amount
+      amount,
+      reviewerNote: review.reviewerNote,
+      verificationLevel: review.verificationLevel ?? VerificationLevel.BASIC
     });
 
     return approved;
   }
 
-  async reject(submissionId: string, reviewerId: string, rejectionReason: string) {
+  async reject(submissionId: string, reviewerId: string, review: RejectSubmissionDto) {
     const submission = await this.prisma.submission.findUnique({ where: { id: submissionId } });
     if (!submission) {
       throw new NotFoundException('Submission not found');
@@ -149,12 +187,31 @@ export class SubmissionsService {
       where: { id: submissionId },
       data: {
         status: SubmissionStatus.REJECTED,
-        rejectionReason: rejectionReason,
+        rejectionReason: review.rejectionReason,
+        reviewerNote: review.reviewerNote,
+        verificationChecklist: this.buildChecklist(submission, review.checklist),
         reviewedById: reviewerId,
         reviewedAt: new Date()
       }
     });
-    await this.auditService.record(reviewerId, 'reject_submission', 'Submission', rejected.id, { rejectionReason });
+    await this.auditService.record(reviewerId, 'reject_submission', 'Submission', rejected.id, {
+      rejectionReason: review.rejectionReason,
+      reviewerNote: review.reviewerNote
+    });
     return rejected;
+  }
+
+  private buildChecklist(submission: { evidenceFilePath?: string | null; latitude?: number | null; longitude?: number | null; projectId?: string | null; speciesId?: string | null; evidenceHash?: string | null }, override?: ReviewChecklistDto) {
+    return {
+      imagePresent: override?.imagePresent ?? Boolean(submission.evidenceFilePath),
+      locationPresent: override?.locationPresent ?? (submission.latitude != null && submission.longitude != null),
+      projectSelected: override?.projectSelected ?? Boolean(submission.projectId),
+      speciesSelected: override?.speciesSelected ?? Boolean(submission.speciesId),
+      duplicateCheckPassed: override?.duplicateCheckPassed ?? Boolean(submission.evidenceHash)
+    };
+  }
+
+  private isSuspiciousSubmission(data: CreateSubmissionDto, file: Express.Multer.File) {
+    return !data.latitude || !data.longitude || file.size < 1024;
   }
 }

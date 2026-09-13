@@ -1,13 +1,16 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards, UploadedFile, UseInterceptors, BadRequestException, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, Res, UseGuards, UploadedFile, UseInterceptors, BadRequestException, Query } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { SubmissionType } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
+import { ApproveSubmissionDto, RejectSubmissionDto } from './dto/review-submission.dto';
 import { SubmissionsService } from './submissions.service';
 import { RequestWithUser } from '../auth/types/request-with-user';
+import { SimpleRateLimitGuard } from '../common/guards/simple-rate-limit.guard';
 
 @ApiTags('Submissions')
 @Controller()
@@ -34,7 +37,7 @@ export class SubmissionsController {
       }
     }
   })
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), SimpleRateLimitGuard)
   @Post('submissions')
   @UseInterceptors(FileInterceptor('file', {
     limits: { fileSize: 5 * 1024 * 1024 },
@@ -54,7 +57,7 @@ export class SubmissionsController {
     if (!file) {
       throw new BadRequestException('Evidence image is required');
     }
-    const submission = await this.submissionsService.create(request.user.sub, body, file.buffer, file.originalname);
+    const submission = await this.submissionsService.create(request.user.sub, body, file);
     return { status: 'success', data: { submission } };
   }
 
@@ -64,6 +67,15 @@ export class SubmissionsController {
   @Get('submissions/my')
   async my(@Req() request: RequestWithUser) {
     return { status: 'success', data: { submissions: await this.submissionsService.findMySubmissions(request.user.sub) } };
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Preview evidence for the owner or an admin reviewer' })
+  @UseGuards(AuthGuard('jwt'))
+  @Get('submissions/:id/evidence')
+  async evidence(@Param('id') id: string, @Req() request: RequestWithUser, @Res() res: Response) {
+    const result = await this.submissionsService.getEvidence(id, request.user);
+    res.type(result.mimeType).sendFile(result.absolutePath);
   }
 
   @ApiBearerAuth()
@@ -82,8 +94,8 @@ export class SubmissionsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('ADMIN')
   @Post('admin/submissions/:id/approve')
-  async approve(@Param('id') id: string, @Req() request: RequestWithUser) {
-    const submission = await this.submissionsService.approve(id, request.user.sub);
+  async approve(@Param('id') id: string, @Req() request: RequestWithUser, @Body() body: ApproveSubmissionDto) {
+    const submission = await this.submissionsService.approve(id, request.user.sub, body);
     return { status: 'success', data: { submission } };
   }
 
@@ -92,8 +104,8 @@ export class SubmissionsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('ADMIN')
   @Post('admin/submissions/:id/reject')
-  async reject(@Param('id') id: string, @Req() request: RequestWithUser, @Body('rejectionReason') rejectionReason: string) {
-    const submission = await this.submissionsService.reject(id, request.user.sub, rejectionReason);
+  async reject(@Param('id') id: string, @Req() request: RequestWithUser, @Body() body: RejectSubmissionDto) {
+    const submission = await this.submissionsService.reject(id, request.user.sub, body);
     return { status: 'success', data: { submission } };
   }
 }

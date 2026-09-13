@@ -13,7 +13,18 @@ const auditMock = { record: vi.fn() };
 
 describe('SubmissionsService', () => {
   it('approves submission and mints coins', async () => {
-    prismaMock.submission.findUnique.mockResolvedValueOnce({ id: 'sub1', userId: 'u1', type: SubmissionType.TREE_PLANTED, projectId: 'p1', status: SubmissionStatus.PENDING });
+    prismaMock.submission.findUnique.mockResolvedValueOnce({
+      id: 'sub1',
+      userId: 'u1',
+      type: SubmissionType.TREE_PLANTED,
+      projectId: 'p1',
+      speciesId: 'species1',
+      latitude: 1,
+      longitude: 2,
+      evidenceFilePath: 'storage/submissions/file.jpg',
+      evidenceHash: 'hash',
+      status: SubmissionStatus.PENDING
+    });
     prismaMock.submission.updateMany.mockResolvedValueOnce({ count: 1 });
     prismaMock.submission.findUniqueOrThrow.mockResolvedValueOnce({ id: 'sub1', userId: 'u1', type: SubmissionType.TREE_PLANTED, projectId: 'p1', status: SubmissionStatus.APPROVED });
     prismaMock.greenCoinLedger.create.mockResolvedValueOnce({ id: 'ledger1' });

@@ -28,9 +28,10 @@ export function validateEnvironment(config: Record<string, unknown>) {
   env.CHAIN_MODE = String(env.CHAIN_MODE ?? 'mock');
   env.PAYMENT_MODE = String(env.PAYMENT_MODE ?? 'simulated');
   env.NEXT_PUBLIC_WEB_ORIGIN = String(env.NEXT_PUBLIC_WEB_ORIGIN ?? 'http://localhost:3000');
+  env.PUBLIC_CERTIFICATE_BASE_URL = String(env.PUBLIC_CERTIFICATE_BASE_URL ?? `${env.NEXT_PUBLIC_WEB_ORIGIN}/certificates`);
 
-  if (!['mock'].includes(String(env.CHAIN_MODE))) {
-    throw new Error('Only CHAIN_MODE=mock is implemented in this MVP');
+  if (!['mock', 'cosmos'].includes(String(env.CHAIN_MODE))) {
+    throw new Error('CHAIN_MODE must be mock or cosmos');
   }
 
   if (!['simulated', 'manual'].includes(String(env.PAYMENT_MODE))) {

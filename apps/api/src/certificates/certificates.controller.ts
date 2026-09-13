@@ -14,6 +14,12 @@ export class CertificatesController {
     return { status: 'success', data: await this.certificatesService.findPublicByCode(code) };
   }
 
+  @Get('certificates/:code/qr.svg')
+  async qr(@Param('code') code: string, @Res() res: Response) {
+    const svg = await this.certificatesService.getQrSvg(code);
+    res.type('image/svg+xml').send(svg);
+  }
+
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('ADMIN')
   @Get('admin/certificates')

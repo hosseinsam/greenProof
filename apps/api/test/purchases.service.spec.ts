@@ -5,11 +5,11 @@ import { ImpactPackStatus, CertificateStatus, VerificationLevel } from '@prisma/
 const prismaMock = {
   $transaction: vi.fn((callback) => callback(prismaMock)),
   purchase: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
-  certificate: { create: vi.fn(), update: vi.fn() },
+  certificate: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
   project: { findUnique: vi.fn() },
   impactPack: { findUnique: vi.fn() },
   impactUnit: { findMany: vi.fn(), updateMany: vi.fn() },
-  reportingFile: { create: vi.fn() }
+  reportingFile: { create: vi.fn(), upsert: vi.fn() }
 };
 const chainMock = {
   mintImpactCertificate: vi.fn(() => Promise.resolve({ txHash: 'tx-mint' })),
@@ -37,10 +37,12 @@ describe('PurchasesService', () => {
     prismaMock.impactUnit.findMany.mockResolvedValueOnce([{ id: 'unit1' }]);
     prismaMock.purchase.create.mockResolvedValueOnce({ id: 'purchase1' });
     prismaMock.certificate.create.mockResolvedValueOnce({ id: 'cert1', code: 'GRP-1234', buyerCompanyId: 'c1', status: CertificateStatus.ISSUED, verificationLevel: VerificationLevel.BASIC, reportHash: 'hash', evidenceBundleHash: 'evidence', chainMintTxHash: null, chainRetireTxHash: null, issuedAt: new Date(), retiredAt: null });
+    prismaMock.certificate.findUnique.mockResolvedValueOnce({ id: 'cert1', code: 'GRP-1234', buyerCompanyId: 'c1', status: CertificateStatus.ISSUED, verificationLevel: VerificationLevel.BASIC, reportHash: 'hash', evidenceBundleHash: 'evidence', chainMintTxHash: null, chainRetireTxHash: null, issuedAt: new Date(), retiredAt: null, impactPack: fakePack });
     prismaMock.certificate.update.mockResolvedValueOnce({ id: 'cert1', status: CertificateStatus.RETIRED, code: 'GRP-1234', buyerCompanyId: 'c1', verificationLevel: VerificationLevel.BASIC, reportHash: 'hash', evidenceBundleHash: 'evidence', chainMintTxHash: 'tx-mint', chainRetireTxHash: 'tx-retire', issuedAt: new Date(), retiredAt: new Date() });
     prismaMock.impactUnit.updateMany.mockResolvedValueOnce({ count: 1 });
     prismaMock.purchase.update.mockResolvedValueOnce({ id: 'purchase1' });
-    prismaMock.reportingFile.create.mockResolvedValueOnce({ id: 'file1' });
+    prismaMock.purchase.findUnique.mockResolvedValueOnce({ id: 'purchase1' });
+    prismaMock.reportingFile.upsert.mockResolvedValueOnce({ id: 'file1' });
 
     const service = new PurchasesService(prismaMock as any, chainMock as any, auditMock as any);
     const result = await service.buyCompanyPack('c1', 'pack1');
