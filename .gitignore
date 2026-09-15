@@ -20,7 +20,9 @@ out/
 apps/*/out/
 
 # Runtime / local app data
-storage/
+/storage/
+apps/api/storage/
+apps/web/storage/
 uploads/
 tmp/
 temp/
