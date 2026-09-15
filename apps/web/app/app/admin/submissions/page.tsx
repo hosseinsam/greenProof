@@ -8,24 +8,51 @@ type Submission = {
   id: string;
   title: string;
   description: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationPrecision?: string | null;
+  evidenceHash?: string | null;
+  evidenceMimeType?: string | null;
+  evidenceFileSize?: number | null;
+  evidenceOriginalName?: string | null;
+  reviewerNote?: string | null;
   suspiciousFlag?: boolean;
   user?: { name: string; email: string };
   project?: { name: string };
   species?: { commonName: string };
 };
 
-const defaultChecklist = {
-  imagePresent: true,
-  locationPresent: true,
-  projectSelected: true,
-  speciesSelected: true,
-  duplicateCheckPassed: true
+type ReviewChecklist = {
+  imagePresent: boolean;
+  locationPresent: boolean;
+  projectSelected: boolean;
+  speciesSelected: boolean;
+  duplicateCheckPassed: boolean;
 };
+
+const checklistKeys: Array<keyof ReviewChecklist> = [
+  'imagePresent',
+  'locationPresent',
+  'projectSelected',
+  'speciesSelected',
+  'duplicateCheckPassed'
+];
+
+function checklistFor(submission?: Submission): ReviewChecklist {
+  return {
+    imagePresent: Boolean(submission?.evidenceHash),
+    locationPresent: submission?.latitude != null && submission?.longitude != null,
+    projectSelected: Boolean(submission?.project),
+    speciesSelected: Boolean(submission?.species),
+    duplicateCheckPassed: Boolean(submission?.evidenceHash && !submission?.suspiciousFlag)
+  };
+}
 
 export default function AdminSubmissionsPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [checklists, setChecklists] = useState<Record<string, ReviewChecklist>>({});
   const [message, setMessage] = useState<string | null>(null);
 
   async function load() {
@@ -51,12 +78,13 @@ export default function AdminSubmissionsPage() {
   }
 
   async function approve(id: string) {
+    const checklist = checklists[id] ?? checklistFor(submissions.find(submission => submission.id === id));
     const result = await apiFetch(`/admin/submissions/${id}/approve`, {
       method: 'POST',
       body: JSON.stringify({
         reviewerNote: notes[id] ?? '',
         verificationLevel: 'PARTNER_VERIFIED',
-        checklist: defaultChecklist
+        checklist
       })
     });
     setMessage(result.status === 'success' ? 'Submission approved and Green Coins minted.' : result.message ?? 'Approval failed.');
@@ -64,16 +92,24 @@ export default function AdminSubmissionsPage() {
   }
 
   async function reject(id: string) {
+    const checklist = checklists[id] ?? checklistFor(submissions.find(submission => submission.id === id));
     const result = await apiFetch(`/admin/submissions/${id}/reject`, {
       method: 'POST',
       body: JSON.stringify({
         rejectionReason: notes[id] || 'Evidence does not pass verification.',
         reviewerNote: notes[id] ?? '',
-        checklist: { ...defaultChecklist, duplicateCheckPassed: false }
+        checklist
       })
     });
     setMessage(result.status === 'success' ? 'Submission rejected with reviewer notes.' : result.message ?? 'Rejection failed.');
     await load();
+  }
+
+  function toggleChecklist(id: string, key: keyof ReviewChecklist) {
+    setChecklists(current => {
+      const checklist = current[id] ?? checklistFor(submissions.find(submission => submission.id === id));
+      return { ...current, [id]: { ...checklist, [key]: !checklist[key] } };
+    });
   }
 
   return (
@@ -96,11 +132,24 @@ export default function AdminSubmissionsPage() {
                   </div>
                   <p className="mt-2 text-sm text-slate-500">{submission.user?.name} - {submission.project?.name} - {submission.species?.commonName}</p>
                   <p className="mt-4 text-slate-700">{submission.description}</p>
-                  <div className="mt-5 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
-                    <p>Image present: yes</p>
-                    <p>Project selected: {submission.project ? 'yes' : 'no'}</p>
-                    <p>Species selected: {submission.species ? 'yes' : 'no'}</p>
-                    <p>Duplicate check: hash enforced by API</p>
+                  <div className="mt-5 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
+                    <p>Location: {submission.latitude ?? 'missing'}, {submission.longitude ?? 'missing'}</p>
+                    <p>Precision: {submission.locationPrecision ?? 'not provided'}</p>
+                    <p>Upload: {submission.evidenceOriginalName ?? 'evidence image'}</p>
+                    <p>Type/size: {submission.evidenceMimeType ?? 'unknown'} - {submission.evidenceFileSize ? `${Math.round(submission.evidenceFileSize / 1024)} KB` : 'unknown'}</p>
+                    <p className="break-all sm:col-span-2">Evidence hash: {submission.evidenceHash ?? 'pending'}</p>
+                    {submission.suspiciousFlag ? <p className="font-semibold text-amber-800 sm:col-span-2">Review flag: {submission.reviewerNote ?? 'Evidence needs extra attention.'}</p> : null}
+                  </div>
+                  <div className="mt-5 grid gap-3 rounded-3xl bg-slate-50 p-4 sm:grid-cols-2">
+                    {checklistKeys.map(key => {
+                      const value = (checklists[submission.id] ?? checklistFor(submission))[key];
+                      return (
+                        <label key={key} className="flex items-center gap-3 text-sm text-slate-700">
+                          <input type="checkbox" checked={value} onChange={() => toggleChecklist(submission.id, key)} />
+                          {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                        </label>
+                      );
+                    })}
                   </div>
                   <textarea
                     className="field-input mt-5 min-h-24"

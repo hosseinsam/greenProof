@@ -111,17 +111,13 @@ export class PurchasesService {
       throw new NotFoundException('Certificate not found');
     }
 
-    await this.prisma.purchase.update({
-      where: { id: purchase.id },
-      data: { status: 'PAID', paymentReference, paidAt: new Date() }
-    });
-
     const retired = await this.finalizePaidPurchase(
       purchase.id,
       certificate.id,
       purchase.companyId,
       certificate.reportHash,
-      certificate.evidenceBundleHash
+      certificate.evidenceBundleHash,
+      paymentReference
     );
 
     await this.auditService.record(adminId, 'confirm_manual_payment', 'Purchase', purchase.id, {
@@ -132,7 +128,14 @@ export class PurchasesService {
     return { purchase: await this.prisma.purchase.findUnique({ where: { id: purchase.id }, include: { certificate: true } }), certificate: retired };
   }
 
-  private async finalizePaidPurchase(purchaseId: string, certificateId: string, companyId: string, reportHash: string, evidenceBundleHash: string) {
+  private async finalizePaidPurchase(
+    purchaseId: string,
+    certificateId: string,
+    companyId: string,
+    reportHash: string,
+    evidenceBundleHash: string,
+    paymentReference?: string
+  ) {
     const certificate = await this.prisma.certificate.findUnique({
       where: { id: certificateId },
       include: { impactPack: { include: { project: true } } }
@@ -179,7 +182,7 @@ export class PurchasesService {
 
     await this.prisma.purchase.update({
       where: { id: purchaseId },
-      data: { certificateId: retired.id, status: 'PAID', paidAt: new Date() }
+      data: { certificateId: retired.id, status: 'PAID', paidAt: new Date(), paymentReference }
     });
 
     const reportHtml = this.generateReport(retired, certificate.impactPack, transferResult.txHash);
@@ -198,14 +201,28 @@ export class PurchasesService {
   async findCompanyPurchases(companyId: string) {
     return this.prisma.purchase.findMany({
       where: { companyId },
-      include: { impactPack: true, certificate: true }
+      include: { impactPack: { include: { project: true } }, certificate: true },
+      orderBy: { createdAt: 'desc' }
     });
   }
 
   async findCompanyCertificates(companyId: string) {
     return this.prisma.certificate.findMany({
       where: { buyerCompanyId: companyId },
-      include: { impactPack: true, project: true }
+      include: { impactPack: true, project: true },
+      orderBy: { issuedAt: 'desc' }
+    });
+  }
+
+  async findPendingManualPayments() {
+    return this.prisma.purchase.findMany({
+      where: { status: 'PENDING' },
+      include: {
+        company: true,
+        impactPack: { include: { project: true } },
+        certificate: true
+      },
+      orderBy: { createdAt: 'asc' }
     });
   }
 

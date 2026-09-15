@@ -15,6 +15,7 @@ export default function AdminDashboardPage() {
       ]}
       actions={[
         { href: '/app/admin/submissions', label: 'Submissions', description: 'Review incoming evidence, inspect coordinates, and approve or reject with context.' },
+        { href: '/app/admin/purchases', label: 'Payments', description: 'Confirm manual funding references before certificates are retired and published.' },
         { href: '/app/admin/projects', label: 'Projects', description: 'Maintain the project catalog that community users can attach their field activity to.' },
         { href: '/app/admin/impact-packs', label: 'Impact Packs', description: 'Package approved impact units into offerings that companies can responsibly fund.' }
       ]}

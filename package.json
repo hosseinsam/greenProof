@@ -16,6 +16,7 @@
     "typecheck": "npm --prefix apps/api run typecheck && npm --prefix apps/web run typecheck",
     "db:migrate": "cd apps/api && npm exec prisma migrate deploy",
     "db:seed": "cd apps/api && npm exec -- ts-node --project tsconfig.json prisma/seed.ts",
+    "bootstrap:admin": "cd apps/api && npm run bootstrap:admin",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down"
   },

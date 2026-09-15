@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { Footer } from '../components/footer';
 
 export const metadata: Metadata = {
   title: 'GreenProof',
@@ -12,6 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans">
         <div className="min-h-screen text-slate-900">
           {children}
+          <Footer />
         </div>
       </body>
     </html>

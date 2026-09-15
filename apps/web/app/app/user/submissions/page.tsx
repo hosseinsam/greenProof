@@ -24,7 +24,12 @@ export default function UserSubmissionsPage() {
               <div key={submission.id} className="rounded-3xl bg-white p-6 shadow-sm">
                 <h2 className="text-xl font-semibold text-slate-900">{submission.title}</h2>
                 <p className="mt-2 text-slate-600">{submission.description}</p>
-                <p className="mt-3 text-sm text-slate-500">Status: {submission.status}</p>
+                <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                  <p>Status: {submission.status}</p>
+                  <p>Verification: {submission.verificationLevel ?? 'waiting for review'}</p>
+                  {submission.reviewerNote ? <p className="sm:col-span-2">Reviewer note: {submission.reviewerNote}</p> : null}
+                  {submission.rejectionReason ? <p className="font-semibold text-rose-700 sm:col-span-2">Rejection reason: {submission.rejectionReason}</p> : null}
+                </div>
               </div>
             ))
           )}

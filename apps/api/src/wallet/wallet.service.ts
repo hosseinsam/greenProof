@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GREEN_COIN_RULES } from './green-coin-rules';
 
 @Injectable()
 export class WalletService {
@@ -9,7 +10,7 @@ export class WalletService {
     const ledger = await this.prisma.greenCoinLedger.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } });
     const balance = ledger.reduce((sum, entry) => sum + entry.amount, 0);
     const stats = await this.getPublicStats(userId);
-    return { balance, ledger, stats };
+    return { balance, ledger, stats, rules: GREEN_COIN_RULES };
   }
 
   async getPublicStats(userId: string) {
@@ -28,5 +29,9 @@ export class WalletService {
       projectsHelped: new Set(approvedSubmissions.map(submission => submission.projectId).filter(Boolean)).size,
       approvedSubmissions: approvedSubmissions.length
     };
+  }
+
+  getRules() {
+    return GREEN_COIN_RULES;
   }
 }

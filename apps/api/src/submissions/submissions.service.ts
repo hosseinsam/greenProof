@@ -9,14 +9,7 @@ import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { SubmissionType, SubmissionStatus, VerificationLevel } from '@prisma/client';
 import { safeEvidenceFilename, writePrivateFile } from '../common/storage/safe-storage';
 import { ApproveSubmissionDto, RejectSubmissionDto, ReviewChecklistDto } from './dto/review-submission.dto';
-
-const GREEN_COIN_REWARDS: Record<SubmissionType, number> = {
-  TREE_PLANTED: 5,
-  SEED_PLANTED: 2,
-  MAINTENANCE: 3,
-  SURVIVAL_CHECK: 10,
-  COMMUNITY_EVENT: 20
-};
+import { GREEN_COIN_REWARDS } from '../wallet/green-coin-rules';
 
 const IMPACT_UNIT_ELIGIBLE_TYPES = [SubmissionType.TREE_PLANTED, SubmissionType.SURVIVAL_CHECK] as const;
 
@@ -56,6 +49,7 @@ export class SubmissionsService {
         evidenceFileSize: file.size,
         evidenceOriginalName: file.originalname,
         suspiciousFlag: this.isSuspiciousSubmission(data, file),
+        reviewerNote: this.suspiciousReasons(data, file).join('; ') || undefined,
         status: SubmissionStatus.PENDING
       }
     });
@@ -133,7 +127,7 @@ export class SubmissionsService {
           userId: approvedSubmission.userId,
           submissionId: approvedSubmission.id,
           amount: rewardAmount,
-          reason: `Approved ${approvedSubmission.type.toLowerCase().replace('_', ' ')}`
+          reason: `Approved ${approvedSubmission.type.toLowerCase().replace(/_/g, ' ')}`
         }
       });
 
@@ -165,7 +159,7 @@ export class SubmissionsService {
       data: { chainTxHash: chainResult.txHash }
     });
 
-      await this.auditService.record(reviewerId, 'approve_submission', 'Submission', approved.id, {
+    await this.auditService.record(reviewerId, 'approve_submission', 'Submission', approved.id, {
       status: approved.status,
       amount,
       reviewerNote: review.reviewerNote,
@@ -212,6 +206,17 @@ export class SubmissionsService {
   }
 
   private isSuspiciousSubmission(data: CreateSubmissionDto, file: Express.Multer.File) {
-    return !data.latitude || !data.longitude || file.size < 1024;
+    return this.suspiciousReasons(data, file).length > 0;
+  }
+
+  private suspiciousReasons(data: CreateSubmissionDto, file: Express.Multer.File) {
+    const reasons: string[] = [];
+    if (data.latitude == null || data.longitude == null) {
+      reasons.push('missing precise location');
+    }
+    if (file.size < 1024) {
+      reasons.push('image file is unusually small');
+    }
+    return reasons;
   }
 }

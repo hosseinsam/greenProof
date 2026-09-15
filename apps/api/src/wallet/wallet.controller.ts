@@ -13,6 +13,11 @@ export class WalletController {
     return { status: 'success', data: await this.walletService.getWallet(request.user.sub) };
   }
 
+  @Get('rules')
+  async rules() {
+    return { status: 'success', data: this.walletService.getRules() };
+  }
+
   @Get('users/:id/public-stats')
   async publicStats(@Param('id') id: string) {
     return { status: 'success', data: await this.walletService.getPublicStats(id) };

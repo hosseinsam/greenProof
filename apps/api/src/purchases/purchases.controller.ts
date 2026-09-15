@@ -35,6 +35,13 @@ export class PurchasesController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('ADMIN')
+  @Get('admin/purchases/pending')
+  async pendingPayments() {
+    return { status: 'success', data: { purchases: await this.purchasesService.findPendingManualPayments() } };
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('ADMIN')
   @Post('admin/purchases/:id/confirm-payment')
   async confirmPayment(@Param('id') id: string, @Req() request: RequestWithUser, @Body() body: ConfirmPaymentDto) {
     return { status: 'success', data: await this.purchasesService.confirmManualPayment(id, request.user.sub, body.paymentReference) };
