@@ -5,13 +5,19 @@ apps/*/node_modules/
 # Build output
 dist/
 build/
+apps/*/dist/
+apps/*/build/
 coverage/
+apps/*/coverage/
 *.tsbuildinfo
 
 # Next.js / frontend caches
 .next/
+.next/**
 apps/*/.next/
+apps/*/.next/**
 out/
+apps/*/out/
 
 # Runtime / local app data
 storage/
