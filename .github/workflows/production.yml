@@ -1,0 +1,141 @@
+name: Production CI/CD
+
+on:
+  push:
+    branches:
+      - production
+  workflow_dispatch:
+
+concurrency:
+  group: production-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Validate production commit
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: greenproof
+          POSTGRES_PASSWORD: greenproof
+          POSTGRES_DB: greenproof
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U greenproof -d greenproof"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://greenproof:greenproof@localhost:5432/greenproof
+      JWT_SECRET: ci-only-secret-change-in-production
+      API_PORT: "4000"
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_WEB_ORIGIN: http://localhost:3000
+      PUBLIC_CERTIFICATE_BASE_URL: http://localhost:3000/certificates
+      STORAGE_DIR: ./storage
+      CHAIN_MODE: mock
+      PAYMENT_MODE: simulated
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: npm exec prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+  docker-build:
+    name: Build production containers
+    runs-on: ubuntu-latest
+    needs: ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          tags: greenproof-api:production
+
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
+          tags: greenproof-web:production
+
+  deploy:
+    name: Deploy production
+    runs-on: ubuntu-latest
+    needs:
+      - ci
+      - docker-build
+    environment: production
+    env:
+      PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+      PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+      PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+      PRODUCTION_APP_DIR: ${{ secrets.PRODUCTION_APP_DIR }}
+
+    steps:
+      - name: Skip deploy when server secrets are not configured
+        if: env.PRODUCTION_HOST == '' || env.PRODUCTION_USER == '' || env.PRODUCTION_SSH_KEY == '' || env.PRODUCTION_APP_DIR == ''
+        run: |
+          echo "Production deploy secrets are not configured."
+          echo "CI and container builds passed; deployment was skipped."
+
+      - name: Deploy over SSH
+        if: env.PRODUCTION_HOST != '' && env.PRODUCTION_USER != '' && env.PRODUCTION_SSH_KEY != '' && env.PRODUCTION_APP_DIR != ''
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$PRODUCTION_SSH_KEY" > ~/.ssh/production_key
+          chmod 600 ~/.ssh/production_key
+          ssh-keyscan -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/production_key "$PRODUCTION_USER@$PRODUCTION_HOST" "
+            set -e
+            cd '$PRODUCTION_APP_DIR'
+            git fetch origin production
+            git checkout production
+            git pull --ff-only origin production
+            npm ci
+            (cd apps/api && npm exec prisma generate && npm exec prisma migrate deploy)
+            npm run build
+            docker compose up -d --build
+          "

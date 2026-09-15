@@ -14,8 +14,8 @@
     "test": "npm --prefix apps/api run test && npm --prefix apps/web run test",
     "lint": "npm --prefix apps/api run lint && npm --prefix apps/web run lint",
     "typecheck": "npm --prefix apps/api run typecheck && npm --prefix apps/web run typecheck",
-    "db:migrate": "npm --prefix apps/api exec prisma migrate deploy",
-    "db:seed": "npm --prefix apps/api exec tsx prisma/seed.ts",
+    "db:migrate": "cd apps/api && npm exec prisma migrate deploy",
+    "db:seed": "cd apps/api && npm exec -- ts-node --project tsconfig.json prisma/seed.ts",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down"
   },

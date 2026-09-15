@@ -91,6 +91,14 @@ async function main() {
     });
   }
 
+  async function speciesId(commonName: string) {
+    const speciesRecord = await prisma.species.findUnique({ where: { commonName } });
+    if (!speciesRecord) {
+      throw new Error(`Seed species not found: ${commonName}`);
+    }
+    return speciesRecord.id;
+  }
+
   await prisma.impactPack.upsert({
     where: { name: 'Starter Tree Pack' },
     update: {
@@ -167,7 +175,7 @@ async function main() {
       id: 'pending-submission-1',
       userId: user.id,
       projectId: project1.id,
-      speciesId: (await prisma.species.findFirst({ where: { commonName: 'Birch' } })).id,
+      speciesId: await speciesId('Birch'),
       type: SubmissionType.TREE_PLANTED,
       title: 'Planting birch seedlings at school yard',
       description: 'Documented planting of three birch seedlings near the school garden.',
@@ -185,7 +193,7 @@ async function main() {
       id: 'approved-submission-1',
       userId: user.id,
       projectId: project1.id,
-      speciesId: (await prisma.species.findFirst({ where: { commonName: 'Oak' } })).id,
+      speciesId: await speciesId('Oak'),
       type: SubmissionType.TREE_PLANTED,
       title: 'Oak planting verification',
       description: 'Verified oak tree planting completed and accepted.',
@@ -231,7 +239,7 @@ async function main() {
       id: 'approved-submission-2',
       userId: user.id,
       projectId: project2.id,
-      speciesId: (await prisma.species.findFirst({ where: { commonName: 'Rowan' } })).id,
+      speciesId: await speciesId('Rowan'),
       type: SubmissionType.SURVIVAL_CHECK,
       title: 'Seedling survival check for community restoration',
       description: 'Verified survival of planted seedlings at community restoration site.',
